@@ -3,12 +3,33 @@
 All notable changes to this project will be documented in this file.
 
 
+## [0.1.2] - 2026-09-23
+
+
+### Bug Fixes
+
+- Route the changelog through a pull request under branch protection (#8)
+
+### Documentation
+
+- Record the automation contract in AGENTS.md (#9)
+
+### Testing
+
+- Deliberate failure to prove the gate blocks (#6)
+
+### Miscellaneous Tasks
+
+- Retrigger release with pull request creation allowed (#10)
+
+
 ## [0.1.1] - 2026-09-23
 
 
 ### Miscellaneous Tasks
 
 - Retrigger release after action allowlist update
+- *(release)* Update changelog for v0.1.1 [skip ci]
 
 ### Ci
 
