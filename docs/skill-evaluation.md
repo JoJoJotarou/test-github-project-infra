@@ -422,7 +422,10 @@ pnpm exec playwright test  ✓ 3 passed (add/complete/delete, 校验错误, 刷�
 - E2E：`e2e.yml` 仅 post-merge + nightly，3 条关键流，55s 通过。
 - 提交门：`commitlint`（PR 内每个提交）+ `title-lint`（PR 标题）均为必需检查。
 - 发布：`release.yml` 在 trunk push 上由 Conventional Commits 计算 SemVer、打 tag、
-  出 GitHub Release，changelog 发布在 Release notes + workflow artifact。
+  出 GitHub Release，changelog 发布在 Release notes + workflow artifact。实测最终状态：
+  `v0.1.2` tag 指向 master 上的真实提交 `b2f0142`，GitHub Release `v0.1.2` 已生成，
+  Release notes 按 Features / Bug Fixes / Documentation / Testing / Miscellaneous
+  正确分组，并附带 `changelog-v0.1.2` artifact。
 - 仓库设置：squash-only + 删分支、分支保护（`gate`/`commitlint`/`title-lint`，
   `enforce_admins: true`，0 review）、私密漏洞报告、actions 默认只读 + 白名单、
   允许 Actions 建 PR、`v*` tag ruleset、auto-merge。
