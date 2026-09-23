@@ -54,24 +54,13 @@ jobs:
 
       # Squash merge turns the PR title into the commit message, and nothing
       # else lints it. The title goes through an env var, never interpolated
-      # into the shell.
-      - name: Form D - exact skill snippet
-        env:
-          TITLE: ${{ github.event.pull_request.title }}
-        run: printf '%s' "$TITLE" \
-        | npx --yes @commitlint/cli@21.2.3 --config .commitlintrc.json
-      - name: Form A - backslash continuation
-        env:
-          TITLE: ${{ github.event.pull_request.title }}
-        run: printf '%s' "$TITLE" \
-          | od -c
-      - name: Form B - block scalar
+      # into the shell. Keep the pipeline inside a `run: |` block: a plain
+      # multi-line scalar folds `\` and `|` onto one line, and the escaped
+      # space then becomes an extra printf argument that appends a space to
+      # the title — which header-trim rejects.
+      - name: Run commitlint on the PR title
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
-          printf '%s' "$TITLE" | od -c
-      - name: Form C - block scalar then commitlint
-        env:
-          TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          printf '%s' "$TITLE" | npx --yes @commitlint/cli@21.2.3 --config .commitlintrc.json
+          printf '%s' "$TITLE" \
+            | npx --yes @commitlint/cli@21.2.3 --config .commitlintrc.json
