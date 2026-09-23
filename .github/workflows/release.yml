@@ -1,0 +1,62 @@
+name: Release & Changelog
+
+on:
+  # This repo's trunk is `master`.
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Changelog and Bump Version
+        id: cliff
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose --bump
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Check Version
+        id: check_version
+        run: |
+          TAG="${{ steps.cliff.outputs.version }}"
+          if [ -z "$TAG" ]; then
+            echo "has_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_release=true" >> $GITHUB_OUTPUT
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit CHANGELOG & Push Tag
+        if: steps.check_version.outputs.has_release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore(release): update changelog for ${{ steps.check_version.outputs.tag }} [skip ci]"
+          git tag -a "${{ steps.check_version.outputs.tag }}" -m "Release ${{ steps.check_version.outputs.tag }}"
+          git push origin master --tags
+
+      - name: Create GitHub Release
+        if: steps.check_version.outputs.has_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.check_version.outputs.tag }}
+          body: ${{ steps.cliff.outputs.content }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

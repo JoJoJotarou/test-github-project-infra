@@ -1,9 +1,9 @@
-# Shared by ci-pipeline-setup (pre-commit) and release-pipeline-setup
-# (commit-msg). Install once per clone: `lefthook install`.
-pre-commit:
-  parallel: true
+# lefthook.yml — the commit-msg block belongs to release-pipeline-setup, the
+# pre-commit block to ci-pipeline-setup. One file, two owners.
+commit-msg:
   commands:
-    check:
-      glob: "*.{js,ts,jsx,tsx,json,jsonc,css}"
-      run: npx @biomejs/biome check --write --no-errors-on-unmatched {staged_files}
-      stage_fixed: true
+    commitlint:
+      # Pinned: `--yes` alone always grabs latest, so a major bump of
+      # @commitlint/cli or @commitlint/config-conventional would silently
+      # rewrite the rules this gate enforces.
+      run: npx --yes @commitlint/cli@21.2.3 --config .commitlintrc.json --edit {1}
