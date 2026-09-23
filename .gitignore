@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+
+# Local data
+data/
+*.db
+*.sqlite
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Test and tooling output
+coverage/
+playwright-report/
+test-results/
+.blob-report/
+.playwright/
+
+# Editor and OS scratch
+.DS_Store
+*.swp
+.idea/
+.vscode/
+*.log
