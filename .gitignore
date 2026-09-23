@@ -13,7 +13,6 @@ data/
 # Environment
 .env
 .env.*
-!.env.example
 
 # Test and tooling output
 coverage/
