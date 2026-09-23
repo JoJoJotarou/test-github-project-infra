@@ -1,0 +1,9 @@
+# Shared by ci-pipeline-setup (pre-commit) and release-pipeline-setup
+# (commit-msg). Install once per clone: `lefthook install`.
+pre-commit:
+  parallel: true
+  commands:
+    check:
+      glob: "*.{js,ts,jsx,tsx,json,jsonc,css}"
+      run: npx @biomejs/biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true

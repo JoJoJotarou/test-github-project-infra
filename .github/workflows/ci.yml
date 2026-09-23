@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  # No branches filter: every PR is gated regardless of base branch — stacked
+  # PRs (base is a feature branch) and backport PRs must not silently skip CI.
+  pull_request:
+  # Branch names are literal globs; there is no "default branch" pattern.
+  # This repo's trunk is `master`.
+  push:
+    branches: [master]
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: ci (${{ matrix.version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # This is a web app: no Apple-platform or Windows-specific code, so no
+        # macos/windows cells. The version axis is the one that matters.
+        version: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.version }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # cheapest first
+      - run: pnpm biome check .
+      - run: pnpm tsc --noEmit
+      - run: pnpm vitest run
+
+  # A matrix job reports one check per combination, so branch protection cannot
+  # name them all stably. Require this single job instead. It is skipped when any
+  # matrix cell fails, and a skipped required check blocks the merge.
+  gate:
+    name: gate
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "all matrix cells green"
