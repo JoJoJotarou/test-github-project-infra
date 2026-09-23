@@ -58,5 +58,7 @@ jobs:
       - name: Run commitlint on the PR title
         env:
           TITLE: ${{ github.event.pull_request.title }}
-        run: printf '%s' "$TITLE" \
-          | npx --yes @commitlint/cli@21.2.3 --config .commitlintrc.json
+        run: |
+          printf '[%s]' "$TITLE"
+          printf '%s' "$TITLE" | od -c | tail -3
+          printf '%s' "$TITLE" | npx --yes @commitlint/cli@21.2.3 --config .commitlintrc.json
