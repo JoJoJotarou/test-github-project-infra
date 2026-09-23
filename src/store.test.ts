@@ -100,3 +100,7 @@ describe('FileTodoStore', () => {
     expect(JSON.parse(raw)).toHaveProperty('todos.0.title', 'shape check');
   });
 });
+
+it("deliberately fails", () => {
+  expect(1).toBe(2);
+});
