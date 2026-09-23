@@ -1,0 +1,5 @@
+# Default owner for anything unmatched.
+# A personal repo has no team to point at; use a team once collaborators exist.
+* @JoJoJotarou
+
+/.github/ @JoJoJotarou
