@@ -16,10 +16,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: write
-      # Needed to open the changelog pull request below.
-      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,7 +37,7 @@ jobs:
           TAG="${{ steps.cliff.outputs.version }}"
           if [ -z "$TAG" ]; then
             echo "has_release=false" >> $GITHUB_OUTPUT
-          elif git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+          elif git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
             echo "tag $TAG already exists; nothing to release" >> $GITHUB_STEP_SUMMARY
             echo "has_release=false" >> $GITHUB_OUTPUT
           else
@@ -50,34 +46,10 @@ jobs:
           fi
 
       # Branch protection rejects a direct push to the trunk, so the changelog
-      # reaches `master` through a pull request instead.
-      - name: Commit CHANGELOG on a release branch
-        if: steps.check_version.outputs.has_release == 'true'
-        run: |
-          TAG="${{ steps.check_version.outputs.tag }}"
-          BRANCH="chore/changelog-$TAG"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
-          git add CHANGELOG.md
-          git commit -m "docs: update changelog for $TAG [skip ci]"
-          git push --force origin "$BRANCH"
-          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-        id: changelog_branch
-
-      - name: Open changelog pull request
-        if: steps.check_version.outputs.has_release == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.check_version.outputs.tag }}
-          BRANCH: ${{ steps.changelog_branch.outputs.branch }}
-        run: |
-          gh pr create --base master --head "$BRANCH" \
-            --title "docs: update changelog for $TAG" \
-            --body "Automated changelog update for $TAG." \
-          || gh pr view "$BRANCH" --json number --jq .number
-          gh pr merge "$BRANCH" --squash --auto || echo "auto-merge unavailable; merge the PR by hand"
-
+      # is not committed to `master`; it ships in the release notes instead.
+      # (A changelog pull request is not an option either: events created with
+      # GITHUB_TOKEN do not start workflow runs, so such a PR could never
+      # satisfy the required checks.)
       - name: Tag the release
         if: steps.check_version.outputs.has_release == 'true'
         run: |
@@ -93,3 +65,11 @@ jobs:
           body: ${{ steps.cliff.outputs.content }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload generated changelog
+        if: steps.check_version.outputs.has_release == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog-${{ steps.check_version.outputs.tag }}
+          path: CHANGELOG.md
+          retention-days: 30
