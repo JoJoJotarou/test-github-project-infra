@@ -16,6 +16,10 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
+      # Needed to open the changelog pull request below.
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,20 +41,49 @@ jobs:
           TAG="${{ steps.cliff.outputs.version }}"
           if [ -z "$TAG" ]; then
             echo "has_release=false" >> $GITHUB_OUTPUT
+          elif git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "tag $TAG already exists; nothing to release" >> $GITHUB_STEP_SUMMARY
+            echo "has_release=false" >> $GITHUB_OUTPUT
           else
             echo "has_release=true" >> $GITHUB_OUTPUT
             echo "tag=$TAG" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit CHANGELOG & Push Tag
+      # Branch protection rejects a direct push to the trunk, so the changelog
+      # reaches `master` through a pull request instead.
+      - name: Commit CHANGELOG on a release branch
         if: steps.check_version.outputs.has_release == 'true'
         run: |
+          TAG="${{ steps.check_version.outputs.tag }}"
+          BRANCH="chore/changelog-$TAG"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add CHANGELOG.md
-          git diff --quiet && git diff --staged --quiet || git commit -m "chore(release): update changelog for ${{ steps.check_version.outputs.tag }} [skip ci]"
-          git tag -a "${{ steps.check_version.outputs.tag }}" -m "Release ${{ steps.check_version.outputs.tag }}"
-          git push origin master --tags
+          git commit -m "docs: update changelog for $TAG [skip ci]"
+          git push --force origin "$BRANCH"
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+        id: changelog_branch
+
+      - name: Open changelog pull request
+        if: steps.check_version.outputs.has_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.check_version.outputs.tag }}
+          BRANCH: ${{ steps.changelog_branch.outputs.branch }}
+        run: |
+          gh pr create --base master --head "$BRANCH" \
+            --title "docs: update changelog for $TAG" \
+            --body "Automated changelog update for $TAG." \
+          || gh pr view "$BRANCH" --json number --jq .number
+          gh pr merge "$BRANCH" --squash --auto || echo "auto-merge unavailable; merge the PR by hand"
+
+      - name: Tag the release
+        if: steps.check_version.outputs.has_release == 'true'
+        run: |
+          TAG="${{ steps.check_version.outputs.tag }}"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "refs/tags/$TAG"
 
       - name: Create GitHub Release
         if: steps.check_version.outputs.has_release == 'true'
