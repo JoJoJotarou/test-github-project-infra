@@ -23,7 +23,7 @@
     "@playwright/test": "1.56.1",
     "@types/node": "22.18.8",
     "lefthook": "2.0.4",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vitest": "3.2.4"
   }
 }
